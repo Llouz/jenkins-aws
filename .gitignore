@@ -6,3 +6,6 @@
 *.iml
 # Systeme
 .DS_Store
+
+# Configuration locale contenant des secrets
+.env
