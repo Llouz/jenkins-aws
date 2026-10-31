@@ -52,35 +52,35 @@ pipeline {
             steps {
                 sshagent(credentials: ['ec2-server-key']) {
                     sh '''
+                        scp -o BatchMode=yes \
+                            -o StrictHostKeyChecking=yes \
+                            -o ConnectTimeout=10 \
+                            docker-compose.yaml \
+                            ec2-user@13.60.209.116:/home/ec2-user/hello-stack/docker-compose.yaml
+
                         ssh -o BatchMode=yes \
                             -o StrictHostKeyChecking=yes \
                             -o ConnectTimeout=10 \
                             ec2-user@13.60.209.116 'bash -se' <<'REMOTE'
         set -e
-        
-        sudo docker pull ellouz/hello-api:jenkins-test
-        
-        if sudo docker container inspect hello-api >/dev/null 2>&1; then
-            sudo docker stop hello-api
-            sudo docker rm hello-api
-        fi
-        
-        sudo docker run -d \
-            --name hello-api \
-            --restart unless-stopped \
-            -p 8080:8080 \
-            ellouz/hello-api:jenkins-test
-        
+        cd /home/ec2-user/hello-stack
+
+        sudo docker compose config --quiet
+        sudo docker compose pull hello-api
+        sudo docker compose up -d --wait --wait-timeout 120
+
+        sudo docker compose ps
+
         for attempt in {1..30}; do
             if response=$(curl -fsS --max-time 2 http://localhost:8080/hello) &&
-               [ "$response" = "Hello World" ]; then
-                echo "Deploiement valide : $response"
+            [ "$response" = "Hello World" ]; then
+                echo "Deploiement Compose valide : $response"
                 exit 0
             fi
             sleep 2
         done
-        
-        sudo docker logs --tail 50 hello-api
+
+        sudo docker compose logs --tail 50 hello-api
         exit 1
         REMOTE
                     '''
