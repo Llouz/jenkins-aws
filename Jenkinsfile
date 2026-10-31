@@ -1,17 +1,19 @@
 pipeline {
     agent any
+	options {
+	    skipDefaultCheckout(true)
+	}    
 
     tools {
         maven 'Maven'
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                git branch: 'main',
-                    url: 'https://github.com/Llouz/jenkins-aws.git'
-            }
-        }
+	stage('Checkout') {
+	    steps {
+		checkout scm
+	    }
+	}
 
         stage('Build JAR') {
             steps {
