@@ -36,6 +36,11 @@ pipeline {
                     env.NEXT_VERSION =
                         "${numbers[0]}.${numbers[1]}.${nextPatch}-SNAPSHOT"
 
+                    env.IMAGE_NAME =
+                        "ellouz/hello-api:${env.NEXT_VERSION}-build-${env.BUILD_NUMBER}"
+
+                    echo "Image a produire : ${env.IMAGE_NAME}"
+
                     echo "Version actuelle : ${currentVersion}"
                     echo "Prochaine version : ${env.NEXT_VERSION}"
                 }
@@ -63,9 +68,9 @@ pipeline {
         }
         stage('Build Image') {
             steps {
-                sh 'docker build -t ellouz/hello-api:jenkins-test .'
-                sh 'docker image ls ellouz/hello-api:jenkins-test'
-            }
+                sh 'docker build -t "$IMAGE_NAME" .'
+                sh 'docker image ls "$IMAGE_NAME"'
+            }   
         }
         stage('Push Image') {
             steps {
@@ -82,7 +87,7 @@ pipeline {
                         printf '%s' "$DOCKER_TOKEN" |
                             docker login --username "$DOCKER_USER" --password-stdin
         
-                        docker push ellouz/hello-api:jenkins-test
+                        docker push "$IMAGE_NAME"
                     '''
                 }
             }
@@ -100,15 +105,18 @@ pipeline {
                         ssh -o BatchMode=yes \
                             -o StrictHostKeyChecking=yes \
                             -o ConnectTimeout=10 \
-                            ec2-user@13.60.209.116 'bash -se' <<'REMOTE'
+                            ec2-user@13.60.209.116 "bash -se -- '$IMAGE_NAME'" <<'REMOTE'
         set -e
+        IMAGE_NAME="$1"
+        export IMAGE_NAME
+        echo "Image a deployer : $IMAGE_NAME"
         cd /home/ec2-user/hello-stack
 
-        sudo docker compose config --quiet
-        sudo docker compose pull hello-api
-        sudo docker compose up -d --wait --wait-timeout 120
+        sudo env IMAGE_NAME="$IMAGE_NAME" docker compose config --quiet
+        sudo env IMAGE_NAME="$IMAGE_NAME" docker compose pull hello-api
+        sudo env IMAGE_NAME="$IMAGE_NAME" docker compose up -d --wait --wait-timeout 120
 
-        sudo docker compose ps
+        sudo env IMAGE_NAME="$IMAGE_NAME" docker compose ps
 
         for attempt in {1..30}; do
             if response=$(curl -fsS --max-time 2 http://localhost:8080/hello) &&
@@ -119,9 +127,9 @@ pipeline {
             sleep 2
         done
 
-        sudo docker compose logs --tail 50 hello-api
+        sudo env IMAGE_NAME="$IMAGE_NAME" docker compose logs --tail 50 hello-api
         exit 1
-        REMOTE
+REMOTE
                     '''
                 }
             }

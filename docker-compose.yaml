@@ -1,6 +1,6 @@
 services:
   hello-api:
-    image: ellouz/hello-api:jenkins-test
+    image: ${IMAGE_NAME:?Image de l'application manquante}
     ports:
       - "8080:8080"
     restart: unless-stopped
