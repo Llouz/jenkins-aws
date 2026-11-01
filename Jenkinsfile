@@ -2,6 +2,7 @@ pipeline {
     agent any
 	options {
 	    skipDefaultCheckout(true)
+        disableConcurrentBuilds()
 	}    
 
     tools {
@@ -130,6 +131,39 @@ pipeline {
         sudo env IMAGE_NAME="$IMAGE_NAME" docker compose logs --tail 50 hello-api
         exit 1
 REMOTE
+                    '''
+                }
+            }
+        }
+
+        stage('Commit Version') {
+            steps {
+                sh '''
+                    git add pom.xml
+
+                    git -c user.name="Jenkins Learning" \
+                        -c user.email="jenkins@localhost" \
+                        commit -m "ci: deploy version $NEXT_VERSION [skip ci]"
+
+                    git --no-pager log -1 --oneline
+                '''
+            }
+        }
+        stage('Push Version') {
+            steps {
+                withCredentials([gitUsernamePassword(
+                    credentialsId: 'github-token',
+                    gitToolName: 'Default'
+                )]) {
+                    sh '''
+                        git fetch origin main
+
+                        if [ "$(git rev-parse FETCH_HEAD)" != "$GIT_COMMIT" ]; then
+                            echo "GitHub a change depuis le checkout : push annule."
+                            exit 1
+                        fi
+
+                        git push origin HEAD:main
                     '''
                 }
             }
