@@ -12,7 +12,16 @@ pipeline {
     stages {
 	    stage('Checkout') {
             steps {
-            checkout scm
+                script {
+                    def checkoutInfo = checkout scm
+                    env.SOURCE_COMMIT = checkoutInfo.GIT_COMMIT
+
+                    if (!env.SOURCE_COMMIT?.trim()) {
+                        error('Impossible de determiner le commit source')
+                    }
+
+                    echo "Commit source : ${env.SOURCE_COMMIT}"
+                }
             }
 	    }
 
@@ -158,7 +167,7 @@ REMOTE
                     sh '''
                         git fetch origin main
 
-                        if [ "$(git rev-parse FETCH_HEAD)" != "$GIT_COMMIT" ]; then
+                        if [ "$(git rev-parse FETCH_HEAD)" != "$SOURCE_COMMIT" ]; then
                             echo "GitHub a change depuis le checkout : push annule."
                             exit 1
                         fi
