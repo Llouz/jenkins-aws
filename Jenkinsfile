@@ -9,17 +9,44 @@ pipeline {
     }
 
     stages {
-	stage('Checkout') {
-	    steps {
-		checkout scm
+	    stage('Checkout') {
+            steps {
+            checkout scm
+            }
 	    }
-	}
+
+        stage('Prepare Version') {
+            steps {
+                script {
+                    def currentVersion = sh(
+                        script: 'mvn help:evaluate -Dexpression=project.version -q -DforceStdout',
+                        returnStdout: true
+                    ).trim()
+
+                    if (!(currentVersion ==~ /[0-9]+\.[0-9]+\.[0-9]+-SNAPSHOT/)) {
+                        error("Format de version non pris en charge : ${currentVersion}")
+                    }
+
+                    def numbers = currentVersion
+                        .replace('-SNAPSHOT', '')
+                        .tokenize('.')
+
+                    def nextPatch = numbers[2].toInteger() + 1
+
+                    env.NEXT_VERSION =
+                        "${numbers[0]}.${numbers[1]}.${nextPatch}-SNAPSHOT"
+
+                    echo "Version actuelle : ${currentVersion}"
+                    echo "Prochaine version : ${env.NEXT_VERSION}"
+                }
+            }
+        }
 
         stage('Build JAR') {
             steps {
                 sh 'mvn -version'
                 sh 'mvn -B clean package'
-                sh 'ls -lh target/*.jar'
+                sh 'ls -lh target/hello-api.jar'
             }
         }
         stage('Build Image') {
