@@ -42,6 +42,18 @@ pipeline {
             }
         }
 
+        stage('Update Version') {
+            steps {
+                sh '''
+                    mvn -B versions:set \
+                        -DnewVersion="$NEXT_VERSION" \
+                        -DgenerateBackupPoms=false
+                '''
+
+                sh 'git --no-pager diff -- pom.xml'
+            }
+        }
+
         stage('Build JAR') {
             steps {
                 sh 'mvn -version'
