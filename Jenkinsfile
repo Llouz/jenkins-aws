@@ -110,12 +110,12 @@ pipeline {
                             -o StrictHostKeyChecking=yes \
                             -o ConnectTimeout=10 \
                             docker-compose.yaml \
-                            ec2-user@13.60.209.116:/home/ec2-user/hello-stack/docker-compose.yaml
+                            ec2-user@172.31.24.81:/home/ec2-user/hello-stack/docker-compose.yaml
 
                         ssh -o BatchMode=yes \
                             -o StrictHostKeyChecking=yes \
                             -o ConnectTimeout=10 \
-                            ec2-user@13.60.209.116 "bash -se -- '$IMAGE_NAME'" <<'REMOTE'
+                            ec2-user@172.31.24.81 "bash -se -- '$IMAGE_NAME'" <<'REMOTE'
         set -e
         IMAGE_NAME="$1"
         export IMAGE_NAME
